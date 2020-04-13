@@ -5,7 +5,7 @@ export type ModalProps = {
     onClose: Function,
 }
 
-const Modal: FunctionalComponent = (props: ModalProps) => {
+const Modal: FunctionalComponent<ModalProps> = (props: ModalProps) => {
     const defaultOnClose = () => { console.error('Provide an onClose function for the modal.'); }
     return props.visible && (
         <div class="modal is-active">

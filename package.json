@@ -35,7 +35,9 @@
     "preact-markup": "^2.0.0",
     "preact-render-to-string": "^5.1.4",
     "preact-router": "^3.2.1",
-    "styled-components": "^5.1.0"
+    "socket.io-client": "^2.3.0",
+    "styled-components": "^5.1.0",
+    "uuid": "^7.0.3"
   },
   "devDependencies": {
     "@types/jest": "^25.1.2",

@@ -1,11 +1,12 @@
-import { FunctionalComponent, h } from "preact";
+import { FunctionalComponent, h, createContext } from "preact";
 import { Route, Router, RouterOnChangeArgs } from "preact-router";
 import { createHashHistory } from "history";
 import "bulma/css/bulma.min.css";
+import SocketProvider from "./SocketProvider";
 
 import Home from "../routes/home";
 import Profile from "../routes/profile";
-import Game from '../routes/Game';
+import GameComponent from '../routes/game';
 import NotFoundPage from '../routes/notfound';
 import Header from "./header";
 
@@ -25,25 +26,16 @@ const App: FunctionalComponent = () => {
         <div id="app">
             {/* <Header /> */}
 
-            <div class="modal">
-                <div class="modal-background"></div>
-                <div class="modal-content">
-                    <p class="image is-4by3">
-                        <img src="https://bulma.io/images/placeholders/1280x960.png" alt="" />
-                    </p>
-                </div>
-                <button class="modal-close is-large" aria-label="close"></button>
-            </div>
+            <SocketProvider>
+                <Router onChange={handleRoute} history={createHashHistory()}>
+                    <Route path="/" component={Home} />
+                    <Route path="/game/:gameId" component={GameComponent} />
 
-            <Router onChange={handleRoute} history={createHashHistory()}>
-                <Route path="/" component={Home} />
-                <Route path="/:playerId/game/:gameId" component={Game} />
-                <Route path="/:playerId/host" component={Game} />
-
-                <Route path="/profile/" component={Profile} user="me" />
-                <Route path="/profile/:user" component={Profile} />
-                <NotFoundPage default />
-            </Router>
+                    <Route path="/profile/" component={Profile} user="me" />
+                    <Route path="/profile/:user" component={Profile} />
+                    <NotFoundPage default />
+                </Router>
+            </SocketProvider>
         </div>
     );
 };

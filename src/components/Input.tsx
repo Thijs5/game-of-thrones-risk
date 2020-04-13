@@ -7,6 +7,7 @@ export type InputProps = {
     iconLeft?: string,
     className?: any,
     type?: string,
+    value: string,
     label?: string,
     onInput?: Function,
     ref?: any,
@@ -38,6 +39,7 @@ class Input extends Component<InputProps> {
             placeholder,
             ref,
             type,
+            value,
             onInput,
         } = this.props;
         return (
@@ -49,6 +51,7 @@ class Input extends Component<InputProps> {
                 )}
                 <div class={this.controlCssClasses()}>
                     <input
+                        value={value}
                         ref={(input) => { this.inputRef = input; }} 
                         id={id}
                         class="input"

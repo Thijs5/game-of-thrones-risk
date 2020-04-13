@@ -15,15 +15,21 @@ export enum ButtonVariant {
 
 export type ButtonProps = {
     variant: ButtonVariant,
+    onClick: Function,
+    type?: 'button'|'submit',
 }
 
-const Button: FunctionalComponent = ({ children, variant, ...rest }) => {
+const Button: FunctionalComponent<ButtonProps> = ({ children, variant, type, ...rest }) => {
     const variantCssClass = () => {
         return variant || ButtonVariant.White;
     }
 
     return (
-        <button class={`button ${variantCssClass()}`} {...rest}>
+        <button
+            class={`button ${variantCssClass()}`}
+            type={type || 'button'}
+            {...rest}
+        >
             {children}
         </button>
     );

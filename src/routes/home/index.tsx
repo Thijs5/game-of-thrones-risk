@@ -1,40 +1,51 @@
-import { FunctionalComponent, h, Fragment } from "preact";
+import { FunctionalComponent, h, Fragment, Component } from "preact";
 import { route } from "preact-router";
 
 import * as style from "./style.css";
 import Input from "../../components/Input";
 import Button, { ButtonVariant } from "../../components/Button";
-import { useState, useRef } from 'preact/hooks';
+import { useContext } from 'preact/hooks';
 import Modal, { ModalProps } from "../../components/Modal";
 import Header from "../../components/header";
+import { EventsForGame, SocketContext } from "../../components/SocketProvider";
+import Game from "../../domain/Game";
+import Player from "../../domain/Player";
 
-const EnterUserNameModal: FunctionalComponent = (props: ModalProps) => {
-    const [username, setUsername] = useState('');
+type EnterUserNameModalProp = ModalProps & {
+    onJoinGame: Function,
+}
 
+const EnterUserNameModal: FunctionalComponent<EnterUserNameModalProp> = (props: EnterUserNameModalProp) => {
+    const player = Player.get();
     const onUsernameChanged = (event: any) => {
-        setUsername(event.target.value);
+        const { value } = event.target;
+        player.username = value;
     }
     const onClickJoinGame = () => {
-        route(`/game/${username}`);
+        props.onJoinGame(player);
     }
     return (
         <Modal visible={props.visible} onClose={props.onClose}>
             <div class="card">
                 <div class="card-content">
                     <div class="content">
-                        <Input
-                            autoFocus={true}
-                            id="username-input"
-                            label="Please enter your name so other players know who you are."
-                            placeholder="Username"
-                            onInput={onUsernameChanged}
-                        />
-                        <Button
-                            variant={ButtonVariant.Primary}
-                            onClick={onClickJoinGame}
-                        >
-                            Join game
-                        </Button>
+                        <form>
+                            <Input
+                                autoFocus={true}
+                                value={player.username}
+                                id="username-input"
+                                label="Please enter your name so other players know who you are."
+                                placeholder="Username"
+                                onInput={onUsernameChanged}
+                            />
+                            <Button
+                                variant={ButtonVariant.Primary}
+                                onClick={onClickJoinGame}
+                                type="submit"
+                            >
+                                Join game
+                            </Button>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -42,48 +53,115 @@ const EnterUserNameModal: FunctionalComponent = (props: ModalProps) => {
     )
 }
 
-const Home: FunctionalComponent = () => {
-    const [modal, setModal] = useState(false);
-    console.log('modal', { modal });
-    const onGameIdChanged = (e: any) => {
-        const { value } = e.target;
-        if (value && value.length == 2) {
-            setModal(true);
+type HomeProps = {}
+type HomeState = {
+    modalVisible: boolean,
+    joinFunction: Function,
+    player: Player,
+    game?: Game,
+}
+
+class Home extends Component<HomeProps, HomeState> {
+    constructor() {
+        super();
+        this.state = {
+            modalVisible: false,
+            joinFunction: () => {},
+            player: this.getOrCreatePlayer(),
+            game: undefined,
+        };
+
+        this.onGameIdChanged = this.onGameIdChanged.bind(this);
+        this.onHostGame = this.onHostGame.bind(this);
+        this.onCloseModal = this.onCloseModal.bind(this);
+        this.gotoGame = this.gotoGame.bind(this);
+    }
+
+    getOrCreatePlayer = () => {
+        try {
+            return Player.get();
+        } catch {
+            return Player.create();
         }
-    };
-    const onHostGame = () => {
-        route('/host/:playerId');
-    };
-    return (
-        <Fragment>
-            <Header />
-            <div class={style.home}>
-                <EnterUserNameModal
-                    visible={modal}
-                    onClose={() => setModal(false)}
-                />
+    }
 
-                <Input
-                    autoFocus={true}
-                    id="game-id-input"
-                    label="Connect to a game"
-                    iconLeft="gamepad"
-                    placeholder="Game ID"
-                    onInput={onGameIdChanged}
-                />
-                
-                <p>or</p>
+    componentWillMount() {
+        const { game } = this.state;
+        if (game) {
+            this.gotoGame();
+        }
+    }
 
-                <Button
-                    data-target="modal"
-                    variant={ButtonVariant.Primary}
-                    onClick={onHostGame}
-                >
-                    Host your own game
-                </Button>
-            </div>
-        </Fragment>
-    );
+    gotoGame() {
+        const { game } = this.state;
+        if (game) {
+            route(`game/${game.id}`);
+        }
+    }
+
+    onGameIdChanged(e: any) {
+        const { value: gameId } = e.target;
+        if (gameId && gameId.length == 36) {
+            this.setState({
+                joinFunction: this.gotoGame,
+                modalVisible: true,
+            });
+        }
+    }
+
+    onHostGame() {
+        const socket: any = useContext(SocketContext);
+        const { player: host } = this.state;
+        this.setState({
+            joinFunction: () => {
+                const game = Game.create(host.id);
+                const events = new EventsForGame(game.id);
+                socket.emit(events.HOST_GAME, game);
+                this.setState({ game });
+                socket.on(events.GAME_CREATED, this.gotoGame);
+            },
+            modalVisible: true,
+        });
+    }
+
+    onCloseModal() {
+        this.setState({ modalVisible: false });
+    }
+
+    render() {
+        const { modalVisible, joinFunction } = this.state;
+        return (
+            <Fragment>
+                <Header />
+                <div class={style.home}>
+                    <EnterUserNameModal
+                        visible={modalVisible}
+                        onClose={this.onCloseModal}
+                        onJoinGame={joinFunction}
+                    />
+
+                    <Input
+                        autoFocus={true}
+                        value=""
+                        id="game-id-input"
+                        label="Connect to a game"
+                        iconLeft="gamepad"
+                        placeholder="Game ID"
+                        onInput={this.onGameIdChanged}
+                    />
+                    
+                    <p>or</p>
+
+                    <Button
+                        variant={ButtonVariant.Primary}
+                        onClick={this.onHostGame}
+                    >
+                        Host your own game
+                    </Button>
+                </div>
+            </Fragment>
+        );
+    }
 };
 
 export default Home;
